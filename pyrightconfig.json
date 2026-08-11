@@ -1,0 +1,20 @@
+{
+  "include": [
+    "."
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "Friday-UI",
+    "Frontend-Research"
+  ],
+  "ignore": [
+    "env"
+  ],
+  "venvPath": ".",
+  "venv": "env",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "pythonVersion": "3.10"
+}

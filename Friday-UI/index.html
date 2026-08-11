@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Particle Sphere</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <div id="app"></div>
+    
+    <!-- Chat Window overlay -->
+    <div id="chat-container">
+      <div id="chat-messages">
+        <div class="message system-msg">System initialized. Welcome to Friday UI.</div>
+        <div class="message user-msg">What are the current metrics for the particle simulation?</div>
+        <div class="message system-msg">Rendering 5,500 particles with WebGL shaders. Additive blending is active.</div>
+        <div class="message user-msg">Can we increase the noise turbulence?</div>
+        <div class="message system-msg">Adjusting vertex displacement... Processing... Done.</div>
+      </div>
+      <div id="chat-input-container">
+        <input type="text" id="chat-input" placeholder="Type a message..." />
+        <button id="chat-send">SEND</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

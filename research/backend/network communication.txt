@@ -1,0 +1,19 @@
+            React
+                      │
+          ┌───────────┴───────────┐
+          │                       │
+     WebSocket                  WebRTC
+     control/signaling          streaming
+          │                       │
+          ▼                       ▼
+      Backend              Media/Agent Server
+          │                       │
+          │                 ┌─────┴─────┐
+          │                 │           │
+          │              🎥 Video     🎤 Audio
+          │
+          ├── authentication
+          ├── session management
+          ├── connection status
+          ├── commands/events
+          └── WebRTC signaling
