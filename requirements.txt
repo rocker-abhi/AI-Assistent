@@ -17,3 +17,8 @@ python-multipart==0.0.6
 
 # Utilities
 python-dotenv==1.0.0
+
+# LLM Integration
+langchain-core==1.5.4
+langchain-ollama==1.1.0
+ollama==0.6.2
