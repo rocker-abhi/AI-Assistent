@@ -1,14 +1,16 @@
 {
   "include": [
-    "."
+    "app",
+    "main.py"
   ],
   "exclude": [
     "**/node_modules",
     "**/__pycache__",
     "Friday-UI",
-    "Frontend-Research"
+    "env"
   ],
   "ignore": [
+    "Friday-UI",
     "env"
   ],
   "venvPath": ".",

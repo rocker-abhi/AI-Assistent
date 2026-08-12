@@ -11,6 +11,12 @@ const init = () => {
   // Scene setup
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
+  
+  // Expose a method to change background color based on status
+  const updateBackgroundStatus = (isOffline) => {
+    // 0x330000 is a dark red color. 0x000000 is black.
+    scene.background.setHex(isOffline ? 0x220000 : 0x000000);
+  };
 
   // Camera setup
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -98,6 +104,107 @@ const init = () => {
   };
 
   animate();
+  
+  // Initialize chat and pass the background updater callback
+  setupChat(updateBackgroundStatus);
 };
 
+// --- WebSocket and Chat UI Integration ---
+const setupChat = (onStatusChange) => {
+  // Connect to the FastAPI backend we just set up
+  const wsUrl = `ws://127.0.0.1:8000/ws/friday-frontend`;
+  const ws = new WebSocket(wsUrl);
+
+  // Safely close the websocket if Vite hot-reloads the file (prevents zombie connections)
+  if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+      ws.close();
+    });
+  }
+
+  const messagesContainer = document.getElementById('chat-messages');
+  const inputElement = document.getElementById('chat-input');
+  const sendButton = document.getElementById('chat-send');
+
+  // Clear the hardcoded mock messages from index.html
+  if (messagesContainer) {
+    messagesContainer.innerHTML = '';
+  }
+
+  // Helper to dynamically append messages to the chat UI
+  const addMessage = (text, isUser) => {
+    if (!messagesContainer) return;
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${isUser ? 'user-msg' : 'system-msg'}`;
+    msgDiv.textContent = text;
+    messagesContainer.appendChild(msgDiv);
+    
+    // Auto-scroll to the latest message
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  };
+
+  // WebSocket Event Listeners
+  ws.onopen = () => {
+    onStatusChange(false);
+    const banner = document.getElementById('status-banner');
+    if (banner) banner.style.display = 'none';
+    const chat = document.getElementById('chat-container');
+    if (chat) chat.style.display = 'flex';
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      // Handle the JSON payload sent by the backend manager.send_json
+      const data = JSON.parse(event.data);
+      if (data.message) {
+        addMessage(data.message, false);
+      } else {
+        addMessage(JSON.stringify(data), false);
+      }
+    } catch (e) {
+      // Fallback if the backend sends raw text
+      addMessage(event.data, false);
+    }
+  };
+
+  ws.onclose = () => {
+    onStatusChange(true);
+    const banner = document.getElementById('status-banner');
+    if (banner) banner.style.display = 'block';
+    const chat = document.getElementById('chat-container');
+    if (chat) chat.style.display = 'none';
+  };
+  
+  ws.onerror = () => {
+    onStatusChange(true);
+    const banner = document.getElementById('status-banner');
+    if (banner) banner.style.display = 'block';
+    const chat = document.getElementById('chat-container');
+    if (chat) chat.style.display = 'none';
+  };
+
+  // UI Event Listeners for sending messages
+  const sendMessage = () => {
+    const text = inputElement.value.trim();
+    if (text && ws.readyState === WebSocket.OPEN) {
+      addMessage(text, true); // Instantly show user message
+      ws.send(text);          // Send to FastAPI backend
+      inputElement.value = ''; // Clear input
+    }
+  };
+
+  if (sendButton) {
+    sendButton.addEventListener('click', sendMessage);
+  }
+  
+  if (inputElement) {
+    inputElement.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+  }
+};
+
+// Start the application
 init();

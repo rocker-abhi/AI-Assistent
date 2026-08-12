@@ -27,7 +27,7 @@ def setup_logger(name: str = "friday_app", log_dir: str = "logs") -> logging.Log
 
     # Define the log format
     log_format = logging.Formatter(
-        "%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s:%(lineno)d) - %(message)s"
+        "%(asctime)s - [%(levelname)s] - (%(filename)s:%(funcName)s:%(lineno)d) - %(message)s"
     )
 
     # 1. Console Handler
