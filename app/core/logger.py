@@ -1,6 +1,48 @@
 import os
+import time
 import logging
-from logging.handlers import TimedRotatingFileHandler
+
+class DailyRotatingFileHandler(logging.FileHandler):
+    """
+    Custom file handler that writes to a new file named with the current date,
+    and automatically rolls over at midnight without renaming old files.
+    """
+    def __init__(self, log_dir: str, base_name: str = "app", backupCount: int = 30, **kwargs):
+        self.log_dir = log_dir
+        self.base_name = base_name
+        self.backupCount = backupCount
+        self.current_date = time.strftime("%Y-%m-%d")
+        filename = self._get_filename(self.current_date)
+        super().__init__(filename, **kwargs)
+
+    def _get_filename(self, date_str: str) -> str:
+        return os.path.join(self.log_dir, f"{self.base_name}_{date_str}.log")
+
+    def _cleanup_old_logs(self):
+        if self.backupCount <= 0:
+            return
+        
+        # Calculate the cutoff time
+        cutoff_time = time.time() - (self.backupCount * 86400)
+        
+        try:
+            for filename in os.listdir(self.log_dir):
+                if filename.startswith(f"{self.base_name}_") and filename.endswith(".log"):
+                    file_path = os.path.join(self.log_dir, filename)
+                    if os.path.getmtime(file_path) < cutoff_time:
+                        os.remove(file_path)
+        except OSError:
+            pass
+
+    def emit(self, record):
+        new_date = time.strftime("%Y-%m-%d")
+        if self.current_date != new_date:
+            self.current_date = new_date
+            self.close()
+            self.baseFilename = os.path.abspath(self._get_filename(self.current_date))
+            self.stream = self._open()
+            self._cleanup_old_logs()
+        super().emit(record)
 
 def setup_logger(name: str = "friday_app", log_dir: str = "logs") -> logging.Logger:
     """
@@ -36,21 +78,15 @@ def setup_logger(name: str = "friday_app", log_dir: str = "logs") -> logging.Log
     console_handler.setFormatter(log_format)
 
     # 2. File Handler (Date-wise rotation)
-    # This will create a new file at midnight every day
-    log_file_path = os.path.join(log_dir, "app.log")
-    file_handler = TimedRotatingFileHandler(
-        filename=log_file_path,
-        when="midnight",      # Rotate at midnight
-        interval=1,           # Every 1 day
+    file_handler = DailyRotatingFileHandler(
+        log_dir=log_dir,
+        base_name="app",
         backupCount=30,       # Keep logs for 30 days before deleting older ones
         encoding="utf-8"
     )
     # The file handler saves everything (DEBUG and above)
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(log_format)
-    
-    # Customize the suffix of the rolled files to match a clean date format (e.g. app.log.2023-10-26)
-    file_handler.suffix = "%Y-%m-%d"
 
     # Add handlers to the logger
     logger.addHandler(console_handler)

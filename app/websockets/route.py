@@ -25,7 +25,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             # TODO: Handle AI processing, signaling, or commands here
             
             # Example echo response to confirm receipt
-            await manager.send_json(client_id, {"status": "received", "message": data})
+            await manager.send_to_user(client_id, {"status": "received", "message": data})
             
     except WebSocketDisconnect:
         # Handle client disconnection normally

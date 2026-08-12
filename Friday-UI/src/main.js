@@ -33,6 +33,8 @@ const init = () => {
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
   controls.enableZoom = config.controls.enableZoom;
+  controls.enableRotate = false;
+  controls.enablePan = false;
   controls.target.set(config.sphere.position.x, config.sphere.position.y, config.sphere.position.z);
 
   // Geometry (sphere distributed particles)
