@@ -1,22 +1,8 @@
 {
-  "include": [
-    "app",
-    "main.py"
-  ],
-  "exclude": [
-    "**/node_modules",
-    "**/__pycache__",
-    "Friday-UI",
-    "env"
-  ],
-  "ignore": [
-    "Friday-UI",
-    "env"
-  ],
   "venvPath": ".",
-  "venv": "env",
+  "venv": ".venv",
   "typeCheckingMode": "basic",
   "reportMissingImports": true,
   "reportMissingTypeStubs": false,
-  "pythonVersion": "3.10"
+  "pythonVersion": "3.14"
 }

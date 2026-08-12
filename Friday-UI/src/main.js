@@ -190,7 +190,14 @@ const setupChat = (onStatusChange) => {
     const text = inputElement.value.trim();
     if (text && ws.readyState === WebSocket.OPEN) {
       addMessage(text, true); // Instantly show user message
-      ws.send(text);          // Send to FastAPI backend
+      const messagePayload = {
+        type: "message",
+        message_type: "text",
+        message_id: "msg_" + Date.now(),
+        content: { text: text },
+        timestamp: new Date().toISOString()
+      };
+      ws.send(JSON.stringify(messagePayload)); // Send to FastAPI backend
       inputElement.value = ''; // Clear input
     }
   };
