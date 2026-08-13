@@ -20,14 +20,17 @@ class Settings(BaseSettings):
     ]
     
     # LLM Configuration
-    LLM_MODEL: str = "llama3.2:1b"
+    LLM_MODEL: str = "deepseek-r1:1.5b"
     LLM_TEMPERATURE: float = 0.5
+    MAX_HISTORY_MESSAGES: int = 10
     
     # TTS Configuration
     TTS_VOICE: str = "en-US-JennyNeural"
     TTS_RATE: str = "+17%"
 
     PRIMARY_DB: str = "postgresql+psycopg://abhishek:postgres@localhost:5432/assistant_db"
+
+    GROK_API_KEY = "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"
 
 # Instantiate settings to be imported across the app
 settings = Settings()

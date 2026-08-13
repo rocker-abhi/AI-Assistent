@@ -3,21 +3,19 @@ import re
 import asyncio
 import edge_tts
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-from langchain_ollama import ChatOllama
+from langchain_xai import ChatXAI
 from app.LLM.personality.friday_personality import personality
 from app.core.config import settings
 import emoji
 
 class Assistant:
     def __init__(self, model_name=None, temperature=None, voice=None, rate=None):
-        self.llm = ChatOllama(
-            model=model_name or settings.LLM_MODEL,
+        self.llm = ChatXAI(
+            model=model_name or "grok-beta",
             temperature=temperature if temperature is not None else settings.LLM_TEMPERATURE
         )
         self.voice = voice or settings.TTS_VOICE
         self.rate = rate or settings.TTS_RATE
-
-
 
     async def chat_stream(self, user_prompt: str, text_cb, audio_cb, history=None):
         """Streams the LLM response (text) and TTS (audio) asynchronously via callbacks."""
@@ -61,15 +59,16 @@ class Assistant:
         try:
             async for chunk in self.llm.astream(messages):
                 text = chunk.content
-                await text_cb(text)
-                buffer += text
-                
-                match = re.search(r'(?<=[.,!?:;])[\s\n]+', buffer)
-                if match:
-                    split_idx = match.end()
-                    sentence = buffer[:split_idx]
-                    await audio_queue.put(sentence)
-                    buffer = buffer[split_idx:]
+                if text:
+                    await text_cb(text)
+                    buffer += text
+                    
+                    match = re.search(r'(?<=[.,!?:;])[\s\n]+', buffer)
+                    if match:
+                        split_idx = match.end()
+                        sentence = buffer[:split_idx]
+                        await audio_queue.put(sentence)
+                        buffer = buffer[split_idx:]
 
             if buffer.strip():
                 await audio_queue.put(buffer.strip())

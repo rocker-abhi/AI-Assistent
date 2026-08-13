@@ -141,6 +141,10 @@ const setupChat = (onStatusChange) => {
     msgDiv.textContent = text;
     messagesContainer.appendChild(msgDiv);
     
+    while (messagesContainer.children.length > 25) {
+      messagesContainer.removeChild(messagesContainer.firstChild);
+    }
+    
     // Auto-scroll to the latest message
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   };
@@ -306,11 +310,22 @@ const setupChat = (onStatusChange) => {
     try {
       const data = JSON.parse(event.data);
       
-      if (data.type === 'text') {
+      if (data.type === 'history') {
+        if (data.data && Array.isArray(data.data)) {
+          const historyMessages = data.data.slice(-25);
+          for (const msg of historyMessages) {
+            addMessage(msg.content, msg.role === 'user');
+          }
+        }
+      } else if (data.type === 'text') {
         if (!currentSystemMessageDiv) {
           currentSystemMessageDiv = document.createElement('div');
           currentSystemMessageDiv.className = 'message system-msg';
           messagesContainer.appendChild(currentSystemMessageDiv);
+          
+          while (messagesContainer.children.length > 25) {
+            messagesContainer.removeChild(messagesContainer.firstChild);
+          }
         }
         currentSystemMessageDiv.textContent += data.data;
         messagesContainer.scrollTop = messagesContainer.scrollHeight;

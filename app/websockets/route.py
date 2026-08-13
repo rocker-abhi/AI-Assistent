@@ -1,10 +1,23 @@
+from langchain_core.tools import retriever
 import asyncio
 from app.websockets.shema.input_schema import InputMessageSchema
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.websockets.manager import manager
 from app.core.logger import logger
 from app.websockets.handler.text_handler import handle_text
+from app.core.database import Database
+from app.models.chat_schema.conversation import Conversation
+from sqlalchemy.orm import selectinload
+
 router = APIRouter()
+
+def fetch_primary_converstaion():
+    db = Database().get_session()
+    try:
+        result = db.query(Conversation).options(selectinload(Conversation.messages)).filter(Conversation.is_primary_chat == True).first()
+        return result
+    finally:
+        db.close()
 
 @router.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
@@ -17,6 +30,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     # If the manager rejected the connection (e.g., another connection already exists), exit
     if not connected:
         return
+    
+    conversation = fetch_primary_converstaion()
+    if conversation and conversation.messages:
+        history = [{"role": msg.role, "content": msg.content} for msg in conversation.messages]
+        await manager.send_to_user(client_id, {"type": "history", "data": history})
 
     try:
         while True:
