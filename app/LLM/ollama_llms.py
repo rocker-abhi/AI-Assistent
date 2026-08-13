@@ -5,16 +5,17 @@ import edge_tts
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_ollama import ChatOllama
 from app.LLM.personality.friday_personality import personality
+from app.core.config import settings
 import emoji
 
 class Assistant:
-    def __init__(self, model_name="llama3.2:1b", temperature=0.5, voice="en-US-JennyNeural", rate="+17%"):
+    def __init__(self, model_name=None, temperature=None, voice=None, rate=None):
         self.llm = ChatOllama(
-            model=model_name,
-            temperature=temperature
+            model=model_name or settings.LLM_MODEL,
+            temperature=temperature if temperature is not None else settings.LLM_TEMPERATURE
         )
-        self.voice = voice
-        self.rate = rate
+        self.voice = voice or settings.TTS_VOICE
+        self.rate = rate or settings.TTS_RATE
 
 
 

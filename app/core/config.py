@@ -18,6 +18,16 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://127.0.0.1:5173"
     ]
+    
+    # LLM Configuration
+    LLM_MODEL: str = "llama3.2:1b"
+    LLM_TEMPERATURE: float = 0.5
+    
+    # TTS Configuration
+    TTS_VOICE: str = "en-US-JennyNeural"
+    TTS_RATE: str = "+17%"
+
+    PRIMARY_DB: str = "postgresql+psycopg://abhishek:postgres@localhost:5432/assistant_db"
 
 # Instantiate settings to be imported across the app
 settings = Settings()
