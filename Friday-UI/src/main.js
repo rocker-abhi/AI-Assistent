@@ -158,19 +158,148 @@ const setupChat = (onStatusChange) => {
   const audioQueue = [];
   let isPlayingAudio = false;
 
-  const playNextAudio = () => {
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 512;
+  analyser.connect(audioCtx.destination);
+  
+  const micAnalyser = audioCtx.createAnalyser();
+  micAnalyser.fftSize = 512;
+  
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      const micSource = audioCtx.createMediaStreamSource(stream);
+      micSource.connect(micAnalyser);
+    }).catch(err => {
+      console.warn("Mic access denied/unavailable. Chat visualizer will be flat.", err);
+    });
+  }
+  
+  const canvas = document.getElementById('audio-visualizer');
+  const canvasCtx = canvas.getContext('2d');
+  
+  const chatCanvas = document.getElementById('chat-audio-visualizer');
+  const chatCanvasCtx = chatCanvas.getContext('2d');
+  
+  const resizeCanvas = () => {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+    chatCanvas.width = chatCanvas.parentElement.clientWidth;
+    chatCanvas.height = chatCanvas.parentElement.clientHeight;
+  };
+  window.addEventListener('resize', resizeCanvas);
+  setTimeout(resizeCanvas, 100);
+
+  const bufferLength = analyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+  
+  const micBufferLength = micAnalyser.frequencyBinCount;
+  const micDataArray = new Uint8Array(micBufferLength);
+  
+  const drawVisualizer = () => {
+    requestAnimationFrame(drawVisualizer);
+    
+    analyser.getByteTimeDomainData(dataArray);
+    micAnalyser.getByteTimeDomainData(micDataArray);
+    
+    // Draw on main visualizer
+    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+    canvasCtx.lineWidth = 4;
+    canvasCtx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    canvasCtx.beginPath();
+    
+    const sliceWidth = canvas.width * 1.0 / bufferLength;
+    let x = 0;
+    
+    for(let i = 0; i < bufferLength; i++) {
+      const v = dataArray[i] / 128.0;
+      const y = v * canvas.height / 2;
+      
+      if(i === 0) {
+        canvasCtx.moveTo(x, y);
+      } else {
+        canvasCtx.lineTo(x, y);
+      }
+      x += sliceWidth;
+    }
+    
+    canvasCtx.lineTo(canvas.width, canvas.height / 2);
+    canvasCtx.stroke();
+    
+    // Draw on chat visualizer
+    chatCanvasCtx.clearRect(0, 0, chatCanvas.width, chatCanvas.height);
+    chatCanvasCtx.lineWidth = 2; // thinner line for the smaller chat window
+    chatCanvasCtx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    chatCanvasCtx.beginPath();
+    
+    const chatSliceWidth = chatCanvas.width * 1.0 / micBufferLength;
+    let chatX = 0;
+    
+    for(let i = 0; i < micBufferLength; i++) {
+      const v = micDataArray[i] / 128.0;
+      const y = v * chatCanvas.height / 2;
+      
+      if(i === 0) {
+        chatCanvasCtx.moveTo(chatX, y);
+      } else {
+        chatCanvasCtx.lineTo(chatX, y);
+      }
+      chatX += chatSliceWidth;
+    }
+    
+    chatCanvasCtx.lineTo(chatCanvas.width, chatCanvas.height / 2);
+    chatCanvasCtx.stroke();
+  };
+  drawVisualizer();
+  // ----------------------------------------
+
+  const playNextAudio = async () => {
     if (audioQueue.length === 0) {
       isPlayingAudio = false;
       return;
     }
     isPlayingAudio = true;
     const base64Audio = audioQueue.shift();
-    const audio = new Audio("data:audio/mp3;base64," + base64Audio);
-    audio.onended = playNextAudio;
-    audio.play().catch(e => {
+    
+    try {
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+      
+      const binaryString = window.atob(base64Audio);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const audioBuffer = await audioCtx.decodeAudioData(bytes.buffer);
+      const source = audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(analyser);
+      
+      source.onended = playNextAudio;
+      source.start(0);
+    } catch (e) {
       console.error("Audio playback error:", e);
       playNextAudio();
-    });
+    }
+  };
+
+  const setProcessing = (isProcessing) => {
+    const sendBtn = document.getElementById('chat-send');
+    const loadingBtn = document.getElementById('chat-loading');
+    const thinkingBanner = document.getElementById('thinking-banner');
+    
+    if (isProcessing) {
+      if (sendBtn) sendBtn.style.display = 'none';
+      if (loadingBtn) loadingBtn.style.display = 'block';
+      if (thinkingBanner) thinkingBanner.style.display = 'block';
+    } else {
+      if (sendBtn) sendBtn.style.display = 'block';
+      if (loadingBtn) loadingBtn.style.display = 'none';
+      if (thinkingBanner) thinkingBanner.style.display = 'none';
+    }
   };
 
   ws.onmessage = (event) => {
@@ -190,6 +319,8 @@ const setupChat = (onStatusChange) => {
         if (!isPlayingAudio) {
           playNextAudio();
         }
+      } else if (data.type === 'done') {
+        setProcessing(false);
       } else if (data.message && data.status !== "received") {
         addMessage(data.message, false);
       }
@@ -221,6 +352,7 @@ const setupChat = (onStatusChange) => {
     if (text && ws.readyState === WebSocket.OPEN) {
       addMessage(text, true); // Instantly show user message
       currentSystemMessageDiv = null; // Reset system bubble for next response
+      setProcessing(true); // Show thinking UI
       const messagePayload = {
         type: "message",
         message_type: "text",

@@ -11,16 +11,27 @@
   <body>
     <!-- Top Offline Banner -->
     <div id="status-banner" style="display: none;">SYSTEM IS OFFLINE</div>
+    <!-- Thinking Banner -->
+    <div id="thinking-banner" style="display: none;">Thinking...</div>
     
     <div id="app"></div>
     
+    <!-- Audio Visualizer -->
+    <div id="visualizer-container">
+      <canvas id="audio-visualizer"></canvas>
+    </div>
+    
     <!-- Chat Window overlay -->
     <div id="chat-container">
+      <div id="chat-visualizer-container">
+        <canvas id="chat-audio-visualizer"></canvas>
+      </div>
       <div id="chat-messages">
       </div>
       <div id="chat-input-container">
         <input type="text" id="chat-input" placeholder="Type a message..." />
         <button id="chat-send">SEND</button>
+        <button id="chat-loading" style="display: none;" disabled>WAIT</button>
       </div>
     </div>
 

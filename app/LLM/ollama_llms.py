@@ -8,7 +8,7 @@ from app.LLM.personality.friday_personality import personality
 import emoji
 
 class Assistant:
-    def __init__(self, model_name="llama3.2:1b", temperature=0.5, voice="en-US-JennyNeural", rate="+20%"):
+    def __init__(self, model_name="llama3.2:1b", temperature=0.5, voice="en-US-JennyNeural", rate="+17%"):
         self.llm = ChatOllama(
             model=model_name,
             temperature=temperature
