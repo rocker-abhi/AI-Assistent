@@ -1,5 +1,5 @@
 import base64
-from app.LLM.ollama_llms import Assistant
+from app.LLM.groq_llms import Assistant
 from app.websockets.manager import manager
 from app.core.database import Database
 from app.models.chat_schema.conversation import Conversation

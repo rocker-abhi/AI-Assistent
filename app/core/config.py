@@ -30,7 +30,8 @@ class Settings(BaseSettings):
 
     PRIMARY_DB: str = "postgresql+psycopg://abhishek:postgres@localhost:5432/assistant_db"
 
-    GROK_API_KEY = "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"
+    GROK_API_KEY: str = "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"
+    GROK_MODEL: str = "llama-3.1-8b-instant"
 
 # Instantiate settings to be imported across the app
 settings = Settings()

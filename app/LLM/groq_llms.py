@@ -3,16 +3,18 @@ import re
 import asyncio
 import edge_tts
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-from langchain_xai import ChatXAI
+from langchain_groq import ChatGroq
 from app.LLM.personality.friday_personality import personality
 from app.core.config import settings
+from app.core.logger import logger
 import emoji
 
 class Assistant:
     def __init__(self, model_name=None, temperature=None, voice=None, rate=None):
-        self.llm = ChatXAI(
-            model=model_name or "grok-beta",
-            temperature=temperature if temperature is not None else settings.LLM_TEMPERATURE
+        self.llm = ChatGroq(
+            model=settings.GROK_MODEL,
+            temperature=0.2,
+            api_key=settings.GROK_API_KEY
         )
         self.voice = voice or settings.TTS_VOICE
         self.rate = rate or settings.TTS_RATE
@@ -73,7 +75,7 @@ class Assistant:
             if buffer.strip():
                 await audio_queue.put(buffer.strip())
         except Exception as e:
-            print(f"Error in LLM stream: {e}")
+            logger.error(f"Error in LLM stream: {e}")
             
         await audio_queue.put(None)
         await tts_task
