@@ -1,10 +1,9 @@
+import asyncio
 from app.websockets.shema.input_schema import InputMessageSchema
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.websockets.manager import manager
 from app.core.logger import logger
 from app.websockets.handler.text_handler import handle_text
-from app.websockets.shema.input_schema import InputMessageSchema
-
 router = APIRouter()
 
 @router.websocket("/ws/{client_id}")
@@ -31,7 +30,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             # Example echo response to confirm receipt
             await manager.send_to_user(client_id, {"status": "received", "message": data.model_dump(mode='json')})
             if data.message_type == "text":
-                handle_text(data.content)
+                asyncio.create_task(handle_text(data.content.text, client_id))
 
     except WebSocketDisconnect:
         # Handle client disconnection normally

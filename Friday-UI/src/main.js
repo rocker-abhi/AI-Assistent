@@ -154,14 +154,44 @@ const setupChat = (onStatusChange) => {
     if (chat) chat.style.display = 'flex';
   };
 
+  let currentSystemMessageDiv = null;
+  const audioQueue = [];
+  let isPlayingAudio = false;
+
+  const playNextAudio = () => {
+    if (audioQueue.length === 0) {
+      isPlayingAudio = false;
+      return;
+    }
+    isPlayingAudio = true;
+    const base64Audio = audioQueue.shift();
+    const audio = new Audio("data:audio/mp3;base64," + base64Audio);
+    audio.onended = playNextAudio;
+    audio.play().catch(e => {
+      console.error("Audio playback error:", e);
+      playNextAudio();
+    });
+  };
+
   ws.onmessage = (event) => {
     try {
-      // Handle the JSON payload sent by the backend manager.send_json
       const data = JSON.parse(event.data);
-      if (data.message) {
+      
+      if (data.type === 'text') {
+        if (!currentSystemMessageDiv) {
+          currentSystemMessageDiv = document.createElement('div');
+          currentSystemMessageDiv.className = 'message system-msg';
+          messagesContainer.appendChild(currentSystemMessageDiv);
+        }
+        currentSystemMessageDiv.textContent += data.data;
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      } else if (data.type === 'audio') {
+        audioQueue.push(data.data);
+        if (!isPlayingAudio) {
+          playNextAudio();
+        }
+      } else if (data.message && data.status !== "received") {
         addMessage(data.message, false);
-      } else {
-        addMessage(JSON.stringify(data), false);
       }
     } catch (e) {
       // Fallback if the backend sends raw text
@@ -190,6 +220,7 @@ const setupChat = (onStatusChange) => {
     const text = inputElement.value.trim();
     if (text && ws.readyState === WebSocket.OPEN) {
       addMessage(text, true); // Instantly show user message
+      currentSystemMessageDiv = null; // Reset system bubble for next response
       const messagePayload = {
         type: "message",
         message_type: "text",
