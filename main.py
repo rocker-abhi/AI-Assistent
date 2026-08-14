@@ -1,7 +1,9 @@
+import sys
 import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.core.config import settings
 from app.core.logger import logger
@@ -14,9 +16,16 @@ async def lifespan(app: FastAPI):
     logger.info(f"🚀 {settings.PROJECT_NAME} backend starting up...")
     logger.info(f"CORS enabled for origins: {settings.CORS_ORIGINS}")
     
-    # Initialize Database Manager
-    db = Database()
-    logger.info("Database manager initialized.")
+    # Initialize Database Manager and verify connectivity
+    try:
+        db = Database()
+        with db.engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        logger.info("Database connection established successfully.")
+    except Exception as e:
+        logger.error(f"❌ Failed to connect to the database: {e}")
+        logger.error("🛑 Exiting application due to database connection failure...")
+        sys.exit(1)
     
     yield
     

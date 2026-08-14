@@ -1,25 +1,33 @@
 # Web Framework & Server
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
+fastapi
+uvicorn[standard]
 
 # Real-time Communication
-websockets==12.0
-aiortc==1.6.0  # WebRTC for streaming video/audio
+websockets
 
 # Data Validation & Settings
-pydantic==2.5.2
-pydantic-settings==2.1.0
+pydantic
+pydantic-settings
 
 # Security (Authentication / JWT)
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-python-multipart==0.0.6
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
 
 # Utilities
-python-dotenv==1.0.0
+python-dotenv
+emoji
 
-# LLM Integration
-langchain-core==1.5.4
-langchain-ollama==1.1.0
-ollama==0.6.2
-emoji==2.15.0
+# Database
+sqlalchemy
+psycopg[binary]
+alembic
+
+# LLM & Voice Integration
+langchain-core
+langchain-ollama
+langchain-groq
+ollama
+edge-tts
+numpy
+openai-whisper
