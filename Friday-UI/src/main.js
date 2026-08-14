@@ -192,6 +192,9 @@ const setupChat = (onStatusChange) => {
         MicVAD.new({
           stream: stream,
           positiveSpeechThreshold: config.vad.positiveSpeechThreshold,
+          negativeSpeechThreshold: config.vad.negativeSpeechThreshold,
+          minSpeechFrames: config.vad.minSpeechFrames,
+          redemptionFrames: config.vad.redemptionFrames,
           onSpeechStart: () => {
             console.log("VAD: Speech start detected");
             if ((isPlayingAudio || isProcessingState) && !window.isInterrupting) {
@@ -441,6 +444,8 @@ const setupChat = (onStatusChange) => {
         if (!isPlayingAudio) {
           playNextAudio();
         }
+      } else if (data.type === 'user_transcription') {
+        addMessage(data.message, true); // Display the transcribed text as a user message
       } else if (data.type === 'done') {
         isBackendDone = true;
         checkFullyDone();

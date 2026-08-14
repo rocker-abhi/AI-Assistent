@@ -45,7 +45,10 @@ async def handle_audio(audio_base64: str, client_id: str):
             await manager.send_to_user(client_id, {"type": "done"})
             return
             
-        # Hand off to the text handler to generate the AI response
+        # Send the transcribed text back to the frontend to display in the chat UI
+        await manager.send_to_user(client_id, {"type": "user_transcription", "message": transcribed_text})
+            
+        # Hand off to the text handler to generate the AI response (which also saves to DB)
         await handle_text(transcribed_text, client_id)
         
     except asyncio.CancelledError:

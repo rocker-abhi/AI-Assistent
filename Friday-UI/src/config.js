@@ -21,6 +21,10 @@ export const config = {
     // Sensitivity of the Voice Activity Detection (0.0 to 1.0). Lower is more sensitive. Default is 0.5.
     positiveSpeechThreshold: 0.9,
     // Must be lower than positiveSpeechThreshold
-    negativeSpeechThreshold: 0.8
+    negativeSpeechThreshold: 0.8,
+    // Minimum number of consecutive frames (approx 30ms each) to be considered speech. Increase to filter short noises.
+    minSpeechFrames: 10,
+    // Number of frames of silence to allow before ending the speech segment.
+    redemptionFrames: 10
   }
 };
