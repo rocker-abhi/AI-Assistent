@@ -184,7 +184,7 @@ canvas {
   100% { opacity: 0.5; }
 }
 
-#chat-loading {
+#chat-stop {
   background: rgba(255, 255, 255, 0.3);
   color: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.4);

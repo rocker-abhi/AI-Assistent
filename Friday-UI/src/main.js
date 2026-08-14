@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { config } from './config.js';
+import * as vadWeb from '@ricky0123/vad-web';
+const MicVAD = vadWeb.MicVAD || (vadWeb.default && vadWeb.default.MicVAD) || vadWeb;
 
 import vertexShader from './shaders/particle.vert?raw';
 import fragmentShader from './shaders/particle.frag?raw';
@@ -163,6 +165,16 @@ const setupChat = (onStatusChange) => {
   let isPlayingAudio = false;
 
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  
+  // Resume AudioContext on first user interaction to satisfy browser policies
+  const resumeAudioCtx = () => {
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  };
+  document.addEventListener('click', resumeAudioCtx, { once: true });
+  document.addEventListener('keydown', resumeAudioCtx, { once: true });
+
   const analyser = audioCtx.createAnalyser();
   analyser.fftSize = 512;
   analyser.connect(audioCtx.destination);
@@ -174,6 +186,49 @@ const setupChat = (onStatusChange) => {
     navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
       const micSource = audioCtx.createMediaStreamSource(stream);
       micSource.connect(micAnalyser);
+      
+      // Initialize VAD with the granted stream
+      if (config.vad.enabled) {
+        MicVAD.new({
+          stream: stream,
+          positiveSpeechThreshold: config.vad.positiveSpeechThreshold,
+          onSpeechStart: () => {
+            console.log("VAD: Speech start detected");
+            if ((isPlayingAudio || isProcessingState) && !window.isInterrupting) {
+              window.isInterrupting = true;
+              cancelProcessing();
+              setTimeout(() => { window.isInterrupting = false; }, 1000);
+            }
+          },
+          onSpeechEnd: (audio) => {
+            console.log("VAD: Speech end detected");
+            if (ws.readyState === WebSocket.OPEN) {
+              setProcessing(true);
+              isBackendDone = false;
+              const b64 = float32ToBase64(audio);
+              const messagePayload = {
+                type: "message",
+                message_type: "audio",
+                message_id: "audio_" + Date.now(),
+                content: { text: b64 }, // sending base64 in text field for schema compatibility
+                timestamp: new Date().toISOString()
+              };
+              ws.send(JSON.stringify(messagePayload));
+            }
+          },
+          onVADMisfire: () => {
+            console.log("VAD: Misfire (speech too short)");
+          },
+          onFrameProcessed: (probs) => {
+            if (probs.isSpeech > config.vad.positiveSpeechThreshold) {
+              console.log(`VAD State: Speech detected in frame (Prob: ${probs.isSpeech.toFixed(3)})`);
+            }
+          }
+        }).then(vad => {
+          vad.start();
+          console.log("VAD started successfully and is now listening.");
+        }).catch(e => console.error("VAD initialization failed", e));
+      }
     }).catch(err => {
       console.warn("Mic access denied/unavailable. Chat visualizer will be flat.", err);
     });
@@ -200,6 +255,40 @@ const setupChat = (onStatusChange) => {
   const micBufferLength = micAnalyser.frequencyBinCount;
   const micDataArray = new Uint8Array(micBufferLength);
   
+  let currentAudioSource = null;
+  let isProcessingState = false;
+  let isBackendDone = true;
+
+  const cancelProcessing = () => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: "control",
+        message_type: "cancel",
+        message_id: "cancel_" + Date.now(),
+        content: { text: "cancel" },
+        timestamp: new Date().toISOString()
+      }));
+    }
+    
+    // Stop frontend audio playback
+    audioQueue.length = 0;
+    if (currentAudioSource) {
+      currentAudioSource.stop();
+      currentAudioSource = null;
+    }
+    isPlayingAudio = false;
+    isBackendDone = true;
+    
+    // Reset UI processing state
+    setProcessing(false);
+  };
+
+  const checkFullyDone = () => {
+    if (isBackendDone && !isPlayingAudio) {
+      setProcessing(false);
+    }
+  };
+
   const drawVisualizer = () => {
     requestAnimationFrame(drawVisualizer);
     
@@ -257,9 +346,23 @@ const setupChat = (onStatusChange) => {
   drawVisualizer();
   // ----------------------------------------
 
+  // VAD Integration
+  const float32ToBase64 = (float32Array) => {
+    const buffer = float32Array.buffer;
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+  };
+
+
+
   const playNextAudio = async () => {
     if (audioQueue.length === 0) {
       isPlayingAudio = false;
+      checkFullyDone();
       return;
     }
     isPlayingAudio = true;
@@ -278,12 +381,15 @@ const setupChat = (onStatusChange) => {
       }
       
       const audioBuffer = await audioCtx.decodeAudioData(bytes.buffer);
-      const source = audioCtx.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(analyser);
+      currentAudioSource = audioCtx.createBufferSource();
+      currentAudioSource.buffer = audioBuffer;
+      currentAudioSource.connect(analyser);
       
-      source.onended = playNextAudio;
-      source.start(0);
+      currentAudioSource.onended = () => {
+        currentAudioSource = null;
+        playNextAudio();
+      };
+      currentAudioSource.start(0);
     } catch (e) {
       console.error("Audio playback error:", e);
       playNextAudio();
@@ -291,17 +397,18 @@ const setupChat = (onStatusChange) => {
   };
 
   const setProcessing = (isProcessing) => {
+    isProcessingState = isProcessing;
     const sendBtn = document.getElementById('chat-send');
-    const loadingBtn = document.getElementById('chat-loading');
+    const stopBtn = document.getElementById('chat-stop');
     const thinkingBanner = document.getElementById('thinking-banner');
     
     if (isProcessing) {
       if (sendBtn) sendBtn.style.display = 'none';
-      if (loadingBtn) loadingBtn.style.display = 'block';
+      if (stopBtn) stopBtn.style.display = 'block';
       if (thinkingBanner) thinkingBanner.style.display = 'block';
     } else {
       if (sendBtn) sendBtn.style.display = 'block';
-      if (loadingBtn) loadingBtn.style.display = 'none';
+      if (stopBtn) stopBtn.style.display = 'none';
       if (thinkingBanner) thinkingBanner.style.display = 'none';
     }
   };
@@ -335,7 +442,8 @@ const setupChat = (onStatusChange) => {
           playNextAudio();
         }
       } else if (data.type === 'done') {
-        setProcessing(false);
+        isBackendDone = true;
+        checkFullyDone();
       } else if (data.message && data.status !== "received") {
         addMessage(data.message, false);
       }
@@ -367,7 +475,8 @@ const setupChat = (onStatusChange) => {
     if (text && ws.readyState === WebSocket.OPEN) {
       addMessage(text, true); // Instantly show user message
       currentSystemMessageDiv = null; // Reset system bubble for next response
-      setProcessing(true); // Show thinking UI
+      isBackendDone = false; // Reset backend status
+      setProcessing(true); // Show thinking/stop UI
       const messagePayload = {
         type: "message",
         message_type: "text",
@@ -382,6 +491,11 @@ const setupChat = (onStatusChange) => {
 
   if (sendButton) {
     sendButton.addEventListener('click', sendMessage);
+  }
+  
+  const stopButton = document.getElementById('chat-stop');
+  if (stopButton) {
+    stopButton.addEventListener('click', cancelProcessing);
   }
   
   if (inputElement) {

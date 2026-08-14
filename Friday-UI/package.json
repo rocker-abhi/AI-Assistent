@@ -9,10 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ricky0123/vad-react": "^0.0.36",
+    "@ricky0123/vad-web": "^0.0.30",
     "three": "^0.160.0"
   },
   "devDependencies": {
-    "vite": "^5.4.1"
+    "vite": "^5.4.1",
+    "vite-plugin-commonjs": "^0.10.4",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.6.0"
   },
   "allowScripts": {
     "puppeteer@25.6.0": true

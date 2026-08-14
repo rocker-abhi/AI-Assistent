@@ -1,0 +1,20 @@
+The relationship between `positiveSpeechThreshold` and `negativeSpeechThreshold` is designed to create a "buffer zone" (technically called **hysteresis**), much like how a thermostat works in your house.
+
+Here is exactly how they interact:
+
+1. **`positiveSpeechThreshold` (The "Turn On" Point)**
+   This is the high bar. The VAD (Voice Activity Detector) will only transition from "Not Speaking" to "Speaking" if the probability goes **above** this number (e.g., `0.7`). 
+
+2. **`negativeSpeechThreshold` (The "Turn Off" Point)**
+   This is the low bar. Once the VAD has started detecting speech, it will only transition back to "Not Speaking" when the probability drops **below** this number (e.g., `0.5`). 
+
+### Why have two different thresholds?
+
+Imagine if you only had one single threshold at `0.7`. As you speak, the detector's confidence naturally fluctuates very quickly—it might rapidly jump between `0.65` and `0.75` during normal speech. With a single threshold, the detector would rapidly toggle "ON... OFF... ON... OFF...", cutting your sentence into dozens of broken, tiny fragments.
+
+By using two thresholds:
+* It takes strong confidence (`0.7`) to *start* recording.
+* Once started, it becomes more forgiving. Even if confidence dips to `0.6`, it assumes you are still in the middle of a sentence and keeps recording. 
+* It only completely stops and cuts the audio when confidence drops below `0.5`, indicating you have actually finished speaking.
+
+**Rule of thumb:** `negativeSpeechThreshold` must always be lower than `positiveSpeechThreshold`. The wider the gap between them, the less likely the detector is to accidentally cut you off mid-sentence.

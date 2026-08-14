@@ -1,4 +1,5 @@
 import base64
+import asyncio
 from app.LLM.groq_llms import Assistant
 from app.websockets.manager import manager
 from app.core.database import Database
@@ -45,6 +46,15 @@ async def handle_text(text: str, client_id: str):
         db.commit()
         logger.info(f"[TextHandler] Assistant message saved: {assistant_content}")
 
+    except asyncio.CancelledError:
+        logger.info("[TextHandler] Processing cancelled.")
+        assistant_content = "".join(full_response)
+        if assistant_content:
+            assistant_msg = Message(conversation_id=conversation.id, role="assistant", content=assistant_content)
+            db.add(assistant_msg)
+            db.commit()
+            logger.info(f"[TextHandler] Assistant message saved (partial): {assistant_content}")
+        raise
     except Exception as e:
         logger.error(f"[TextHandler] Error handling text: {e}")
         db.rollback()

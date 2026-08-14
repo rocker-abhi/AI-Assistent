@@ -33,5 +33,7 @@ class Settings(BaseSettings):
     GROK_API_KEY: str = "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"
     GROK_MODEL: str = "llama-3.1-8b-instant"
 
+    WISPER_MODEL: str = "base"
+
 # Instantiate settings to be imported across the app
 settings = Settings()

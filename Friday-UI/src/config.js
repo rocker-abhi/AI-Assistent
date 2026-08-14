@@ -14,5 +14,13 @@ export const config = {
   controls: {
     // Allow the user to zoom in and out with the mouse wheel
     enableZoom: false
+  },
+  vad: {
+    // Enable or disable Voice Activity Detection
+    enabled: true,
+    // Sensitivity of the Voice Activity Detection (0.0 to 1.0). Lower is more sensitive. Default is 0.5.
+    positiveSpeechThreshold: 0.9,
+    // Must be lower than positiveSpeechThreshold
+    negativeSpeechThreshold: 0.8
   }
 };
