@@ -1,6 +1,6 @@
 import base64
 import asyncio
-from app.LLM.groq_llms import Assistant
+from app.LLM.assistant import Assistant
 from app.websockets.manager import manager
 from app.core.database import Database
 from app.models.chat_schema.conversation import Conversation
@@ -12,6 +12,7 @@ assistant = Assistant()
 
 async def handle_text(text: str, client_id: str):
     db = Database().get_session()
+    full_response = []
     try:
         from sqlalchemy.orm import selectinload
         conversation = db.query(Conversation).options(selectinload(Conversation.messages)).filter(Conversation.is_primary_chat == True).first()
@@ -28,8 +29,6 @@ async def handle_text(text: str, client_id: str):
         db.commit()
         logger.info(f"[TextHandler] User message saved: {text}")
 
-        full_response = []
-
         async def send_text(text_chunk):
             full_response.append(text_chunk)
             await manager.send_to_user(client_id, {"type": "text", "data": text_chunk})
@@ -41,10 +40,11 @@ async def handle_text(text: str, client_id: str):
         await assistant.chat_stream(text, send_text, send_audio, history=history)
         
         assistant_content = "".join(full_response)
-        assistant_msg = Message(conversation_id=conversation.id, role="assistant", content=assistant_content)
-        db.add(assistant_msg)
-        db.commit()
-        logger.info(f"[TextHandler] Assistant message saved: {assistant_content}")
+        if assistant_content:
+            assistant_msg = Message(conversation_id=conversation.id, role="assistant", content=assistant_content)
+            db.add(assistant_msg)
+            db.commit()
+            logger.info(f"[TextHandler] Assistant message saved: {assistant_content}")
 
     except asyncio.CancelledError:
         logger.info("[TextHandler] Processing cancelled.")
@@ -58,6 +58,10 @@ async def handle_text(text: str, client_id: str):
     except Exception as e:
         logger.error(f"[TextHandler] Error handling text: {e}")
         db.rollback()
+        await manager.send_to_user(client_id, {
+            "type": "error",
+            "message": f"Sorry, I encountered an issue while generating a response ({str(e)})."
+        })
     finally:
         db.close()
         

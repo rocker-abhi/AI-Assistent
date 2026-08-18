@@ -1,16 +1,23 @@
-# Environments
+# ==============================================================================
+# Git Ignore Configuration for Friday AI Assistant
+# ==============================================================================
+
+# Environments & Secret Files
 .env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 env/
 venv/
+.venv/
 ENV/
 env.bak/
 venv.bak/
 
-# Python
+# Python Artifacts & Cache
 __pycache__/
 *.py[cod]
 *$py.class
@@ -32,37 +39,63 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Logs
 logs/
 *.log
 *.log.*
 app.log*
-
-# Pyright / IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-.pyre/
-.mypy_cache/
-.ruff_cache/
-
-# React / Node.js (Frontend)
-node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-.pnpm-store
 
-# React Builds
-/Friday-UI/dist/
-/Friday-UI/build/
+# AI & Media Cache (Audio / Whisper models)
+*.wav
+*.mp3
+*.pcm
+*.ogg
+*.webm
+models/
+.whisper/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Pyright / IDEs / Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.pyre/
+.mypy_cache/
+.ruff_cache/
+
+# Node.js & Frontend (Friday-UI)
+node_modules/
+Friday-UI/node_modules/
+.pnpm-store
+.vite/
+Friday-UI/.vite/
+dist/
+Friday-UI/dist/
+build/
+Friday-UI/build/
 .next/
 out/
 coverage/
 
-# OS Files
+# OS Generated Files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
