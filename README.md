@@ -399,9 +399,3 @@ The backend sends JSON events over the WebSocket connection during processing:
 | **`error`** | `{"type": "error", "message": "error description"}` | Notifies the client of any processing or API errors. |
 | **`cancelled`** | `{"status": "cancelled", "message": "Processing interrupted."}` | Confirms that ongoing generation has been aborted. |
 
----
-
-## 📜 License
-
-MIT License.
-
